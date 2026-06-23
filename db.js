@@ -1,18 +1,19 @@
-const mysql = require('mysql2');
+const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
-const pool = mysql.createPool({
-    host: process.env.DB_HOST || process.env.MYSQLHOST || 'localhost',
-    user: process.env.DB_USER || process.env.MYSQLUSER || 'root',
-    password: process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || 'password',
-    database: process.env.DB_NAME || process.env.MYSQLDATABASE || 'organ_system',
-    port: process.env.DB_PORT || process.env.MYSQLPORT || 3306,
-    waitForConnections: true,
-    connectionLimit: 10
+const pool = new Pool({
+    host: process.env.DB_HOST || process.env.PGHOST || 'localhost',
+    user: process.env.DB_USER || process.env.PGUSER || 'postgres',
+    password: process.env.DB_PASSWORD || process.env.PGPASSWORD || 'password',
+    database: process.env.DB_NAME || process.env.PGDATABASE || 'organ_system',
+    port: process.env.DB_PORT || process.env.PGPORT || 5432,
+    max: 10,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 2000,
 });
 
-const db = pool.promise();
+const db = pool;
 
 // Sample Data Initialization Function
 async function initializeSampleData() {
@@ -22,9 +23,9 @@ async function initializeSampleData() {
         // 1. Add sample users
         const userPassword = await bcrypt.hash('password123', 10);
         
-        await db.query("INSERT IGNORE INTO users (email, password_hash) VALUES (?, ?)", ['admin@organ.com', userPassword]);
-        await db.query("INSERT IGNORE INTO users (email, password_hash) VALUES (?, ?)", ['doctor@hospital.com', userPassword]);
-        await db.query("INSERT IGNORE INTO users (email, password_hash) VALUES (?, ?)", ['coordinator@organ.com', userPassword]);
+        await db.query("INSERT INTO users (email, password_hash) VALUES ($1, $2) ON CONFLICT (email) DO NOTHING", ['admin@organ.com', userPassword]);
+        await db.query("INSERT INTO users (email, password_hash) VALUES ($1, $2) ON CONFLICT (email) DO NOTHING", ['doctor@hospital.com', userPassword]);
+        await db.query("INSERT INTO users (email, password_hash) VALUES ($1, $2) ON CONFLICT (email) DO NOTHING", ['coordinator@organ.com', userPassword]);
         
         console.log('Sample users added');
 
@@ -38,13 +39,13 @@ async function initializeSampleData() {
         ];
 
         for (const donor of initialDonors) {
-            const [personResult] = await db.query(
-                "INSERT IGNORE INTO person (name, age, gender, blood_group, phone) VALUES (?, ?, ?, ?, ?)",
+            const personResult = await db.query(
+                "INSERT INTO person (name, age, gender, blood_group, phone) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING RETURNING person_id",
                 [donor.name, donor.age, donor.gender, donor.blood_group, donor.phone]
             );
             
-            if (personResult.insertId) {
-                await db.query("INSERT IGNORE INTO donor (donor_id, consent) VALUES (?, ?)", [personResult.insertId, true]);
+            if (personResult.rows.length > 0) {
+                await db.query("INSERT INTO donor (donor_id, consent) VALUES ($1, $2)", [personResult.rows[0].person_id, true]);
             }
         }
 
@@ -70,13 +71,13 @@ async function initializeSampleData() {
         ];
 
         for (const donor of additionalDonors) {
-            const [personResult] = await db.query(
-                "INSERT IGNORE INTO person (name, age, gender, blood_group, phone) VALUES (?, ?, ?, ?, ?)",
+            const personResult = await db.query(
+                "INSERT INTO person (name, age, gender, blood_group, phone) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING RETURNING person_id",
                 [donor.name, donor.age, donor.gender, donor.blood_group, donor.phone]
             );
             
-            if (personResult.insertId) {
-                await db.query("INSERT IGNORE INTO donor (donor_id, consent) VALUES (?, ?)", [personResult.insertId, true]);
+            if (personResult.rows.length > 0) {
+                await db.query("INSERT INTO donor (donor_id, consent) VALUES ($1, $2)", [personResult.rows[0].person_id, true]);
             }
         }
 
@@ -92,14 +93,14 @@ async function initializeSampleData() {
         ];
 
         for (const recipient of initialRecipients) {
-            const [personResult] = await db.query(
-                "INSERT IGNORE INTO person (name, age, gender, blood_group, phone) VALUES (?, ?, ?, ?, ?)",
+            const personResult = await db.query(
+                "INSERT INTO person (name, age, gender, blood_group, phone) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING RETURNING person_id",
                 [recipient.name, recipient.age, recipient.gender, recipient.blood_group, recipient.phone]
             );
             
-            if (personResult.insertId) {
-                await db.query("INSERT IGNORE INTO recipient (recipient_id, organ_needed, urgency_level) VALUES (?, ?, ?)", 
-                    [personResult.insertId, recipient.organ_needed, recipient.urgency]);
+            if (personResult.rows.length > 0) {
+                await db.query("INSERT INTO recipient (recipient_id, organ_needed, urgency_level) VALUES ($1, $2, $3)", 
+                    [personResult.rows[0].person_id, recipient.organ_needed, recipient.urgency]);
             }
         }
 
@@ -125,14 +126,14 @@ async function initializeSampleData() {
         ];
 
         for (const recipient of additionalRecipients) {
-            const [personResult] = await db.query(
-                "INSERT IGNORE INTO person (name, age, gender, blood_group, phone) VALUES (?, ?, ?, ?, ?)",
+            const personResult = await db.query(
+                "INSERT INTO person (name, age, gender, blood_group, phone) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING RETURNING person_id",
                 [recipient.name, recipient.age, recipient.gender, recipient.blood_group, recipient.phone]
             );
             
-            if (personResult.insertId) {
-                await db.query("INSERT IGNORE INTO recipient (recipient_id, organ_needed, urgency_level) VALUES (?, ?, ?)", 
-                    [personResult.insertId, recipient.organ_needed, recipient.urgency]);
+            if (personResult.rows.length > 0) {
+                await db.query("INSERT INTO recipient (recipient_id, organ_needed, urgency_level) VALUES ($1, $2, $3)", 
+                    [personResult.rows[0].person_id, recipient.organ_needed, recipient.urgency]);
             }
         }
 
@@ -150,7 +151,7 @@ async function initializeSampleData() {
         for (const organ of initialOrgans) {
             let hours = organ.organ_type === 'Heart' ? 6 : organ.organ_type === 'Liver' ? 12 : 24;
             await db.query(
-                "INSERT IGNORE INTO organ (donor_id, organ_type, expiry_time) VALUES (?, ?, NOW() + INTERVAL ? HOUR)",
+                "INSERT INTO organ (donor_id, organ_type, expiry_time) VALUES ($1, $2, NOW() + INTERVAL '1 hour' * $3) ON CONFLICT DO NOTHING",
                 [organ.donor_id, organ.organ_type, hours]
             );
         }
@@ -179,7 +180,7 @@ async function initializeSampleData() {
         for (const organ of additionalOrgans) {
             let hours = organ.organ_type === 'Heart' ? 6 : organ.organ_type === 'Liver' ? 12 : 24;
             await db.query(
-                "INSERT IGNORE INTO organ (donor_id, organ_type, expiry_time) VALUES (?, ?, NOW() + INTERVAL ? HOUR)",
+                "INSERT INTO organ (donor_id, organ_type, expiry_time) VALUES ($1, $2, NOW() + INTERVAL '1 hour' * $3) ON CONFLICT DO NOTHING",
                 [organ.donor_id, organ.organ_type, hours]
             );
         }
@@ -187,36 +188,36 @@ async function initializeSampleData() {
         console.log('Additional organs added');
 
         // 8. Add sample hospital
-        await db.query("INSERT IGNORE INTO hospital (hospital_id, name, location) VALUES (?, ?, ?)", 
+        await db.query("INSERT INTO hospital (hospital_id, name, location) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING", 
             [1, 'City General Hospital', 'New York']);
 
         console.log('Sample hospital added');
 
         // 9. Check final data counts
-        const [donorsCount] = await db.query("SELECT COUNT(*) as count FROM donor");
-        const [recipientsCount] = await db.query("SELECT COUNT(*) as count FROM recipient");
-        const [organsCount] = await db.query("SELECT COUNT(*) as count FROM organ WHERE availability_status = 'available'");
+        const donorsCount = await db.query("SELECT COUNT(*) as count FROM donor");
+        const recipientsCount = await db.query("SELECT COUNT(*) as count FROM recipient");
+        const organsCount = await db.query("SELECT COUNT(*) as count FROM organ WHERE availability_status = 'available'");
 
         console.log('\n=== Sample Data Initialization Complete ===');
-        console.log(`Total Donors: ${donorsCount[0].count}`);
-        console.log(`Total Recipients: ${recipientsCount[0].count}`);
-        console.log(`Available Organs: ${organsCount[0].count}`);
+        console.log(`Total Donors: ${donorsCount.rows[0].count}`);
+        console.log(`Total Recipients: ${recipientsCount.rows[0].count}`);
+        console.log(`Available Organs: ${organsCount.rows[0].count}`);
         
         // 10. Show sample potential matches
-        const [matches] = await db.query("SELECT * FROM view_potential_matches LIMIT 5");
-        if (matches.length > 0) {
+        const matches = await db.query("SELECT * FROM view_potential_matches LIMIT 5");
+        if (matches.rows.length > 0) {
             console.log('\n=== Sample Potential Matches ===');
-            matches.forEach(match => {
+            matches.rows.forEach(match => {
                 console.log(`${match.organ_type}: ${match.donor_name} -> ${match.recipient_name} (Urgency: ${match.urgency_level})`);
             });
         }
 
         console.log('\nSample data initialized successfully!');
         return {
-            donors: donorsCount[0].count,
-            recipients: recipientsCount[0].count,
-            organs: organsCount[0].count,
-            matches: matches.length
+            donors: donorsCount.rows[0].count,
+            recipients: recipientsCount.rows[0].count,
+            organs: organsCount.rows[0].count,
+            matches: matches.rows.length
         };
 
     } catch (error) {
