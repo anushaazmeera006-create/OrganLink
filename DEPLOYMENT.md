@@ -1,66 +1,65 @@
 # OrganLink Deployment Guide
 
-## Deploy to Glitch + PlanetScale (Free & Long-term)
+## Deploy to Render.com (Free PostgreSQL + Web Hosting)
 
-### STEP 1: Set up PlanetScale MySQL Database
+### STEP 1: Go to Render.com
 
-1. Go to [planetscale.com](https://planetscale.com) and sign up (free)
-2. Click "New Database" 
-3. Name it: `organlink`
-4. Select region closest to you
-5. Click "Create Database"
-6. Wait 1-2 minutes for database to be created
-7. Click on your database
-8. Go to "Connect" → "General" → "Connect with"
-9. Select "Node.js" and copy these credentials:
-   - **Host** (e.g., `aws.connect.psdb.cloud`)
-   - **Username**
-   - **Password**
-   - **Database name** (usually same as database name)
+1. Go to [render.com](https://render.com) and sign up/login
+2. Click **"New+"** → **"Web Service"**
 
-### STEP 2: Run Database Schema on PlanetScale
+### STEP 2: Connect GitHub Repository
 
-1. In PlanetScale, click "Console" or "SQL Editor"
-2. Copy the contents of your `init.sql` file
-3. Paste it into the SQL editor
-4. Click "Run" to create all tables
-5. This will create: users, person, donor, recipient, organ, hospital tables
+1. Click **"Connect GitHub"** (authorize if needed)
+2. Select your repository: `anushaazmeera006-create/OrganLink`
+3. Click **"Connect"**
 
-### STEP 3: Create Glitch Project
+### STEP 3: Configure Build Settings
 
-1. Go to [glitch.com](https://glitch.com) and sign up/login
-2. Click "New Project" → "Import from GitHub"
-3. Authorize Glitch to access your GitHub
-4. Select your repository: `anushaazmeera006-create/OrganLink`
-5. Click "Import"
-6. Wait for Glitch to import your project
+1. **Name**: `organlink` (or your preferred name)
+2. **Branch**: `main`
+3. **Runtime**: `Node`
+4. **Build Command**: `npm install`
+5. **Start Command**: `node server.js`
+6. Click **"Advanced"** and add:
+   - **Instance Type**: `Free`
 
-### STEP 4: Configure Environment Variables in Glitch
+### STEP 4: Add PostgreSQL Database
 
-1. In Glitch, click the project name (top left)
-2. Click ".env" file (or create it if doesn't exist)
-3. Add these variables with your PlanetScale credentials:
-   ```
-   DB_HOST=your-planetscale-host
-   DB_USER=your-planetscale-username
-   DB_PASSWORD=your-planetscale-password
-   DB_NAME=organlink
-   DB_PORT=3306
-   JWT_SECRET=organlink_secret_key_2024
-   ```
-4. Replace the values with your actual PlanetScale credentials from Step 1
+1. In your Render dashboard, click **"New+"** → **"PostgreSQL"**
+2. Name it: `organlink-db`
+3. Select **Free** tier
+4. Click **"Create Database"**
+5. Wait 1-2 minutes for database to be created
 
-### STEP 5: Start the Application
+### STEP 5: Configure Environment Variables
 
-1. In Glitch, click "Logs" (bottom panel)
-2. Click "Start" or "Refresh" to restart the server
-3. Wait for it to show "Server running on..."
-4. Click "Show" (top button) to open your live app
-5. Your app URL will be: `https://your-project-name.glitch.me`
+1. Click on your web service (organlink)
+2. Go to **"Environment"** tab
+3. Add these variables:
+   - `DB_HOST`: Your PostgreSQL internal host (from database dashboard)
+   - `DB_USER`: Your PostgreSQL username (from database dashboard)
+   - `DB_PASSWORD`: Your PostgreSQL password (from database dashboard)
+   - `DB_NAME`: Your database name (usually same as database name)
+   - `DB_PORT`: `5432`
+   - `JWT_SECRET`: `organlink_secret_key_2024`
 
-### STEP 6: Test Your Application
+### STEP 6: Initialize Database Schema
 
-1. Open your Glitch app URL
+1. Go to your PostgreSQL database in Render
+2. Click **"Connect"** → **"External Connection"**
+3. Use the connection string to connect with a PostgreSQL client
+4. Run the contents of `init_postgres.sql` file
+5. This will create all tables and the matching function
+
+### STEP 7: Deploy
+
+1. Click **"Create Web Service"** on your web service
+2. Wait for deployment to complete (2-3 minutes)
+3. Your app will be available at: `https://organlink.onrender.com`
+
+### STEP 8: Test Your Application
+
+1. Open your Render URL
 2. Check if dashboard loads with data
 3. Test adding donors, recipients
 4. Test the matching algorithm
@@ -68,11 +67,11 @@
 
 ### IMPORTANT NOTES:
 
-- **Your Glitch link will stay active as long as your project is active**
-- **PlanetScale database is free and permanent**
-- **Both services are completely free**
-- **No migration needed - stays on MySQL**
-- **Links are stable for long-term use**
+- **Render provides free PostgreSQL database**
+- **Free web hosting with auto-sleep (wakes on request)**
+- **Your link will stay active as long as your account is active**
+- **Database is PostgreSQL (migrated from MySQL)**
+- **All functionality preserved**
 
 ---
 
