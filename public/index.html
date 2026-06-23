@@ -548,6 +548,12 @@
 
         async function loadDashboard() {
             try {
+                // Show loading state
+                document.getElementById('stat-donors').textContent = 'Loading...';
+                document.getElementById('stat-recipients').textContent = 'Loading...';
+                document.getElementById('stat-organs').textContent = 'Loading...';
+                document.getElementById('stat-matches').textContent = 'Loading...';
+                
                 console.log('Loading dashboard data...');
                 const [donorsRes, recipientsRes, organsRes] = await Promise.all([
                     fetch('/api/donors'),
@@ -569,6 +575,9 @@
                     window.dashboardRetries++;
                     
                     if (window.dashboardRetries < 5) {
+                        document.getElementById('stat-donors').textContent = 'Loading...';
+                        document.getElementById('stat-recipients').textContent = 'Loading...';
+                        document.getElementById('stat-organs').textContent = 'Loading...';
                         setTimeout(loadDashboard, 2000);
                         return;
                     } else {

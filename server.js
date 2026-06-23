@@ -103,7 +103,12 @@ async function startServer() {
         await db.initializeSampleData();
         console.log('Database initialized successfully');
         
-        app.listen(3000, () => console.log("Server running on http://localhost:3000"));
+        // Only start listening after database is fully initialized
+        const PORT = process.env.PORT || 3000;
+        app.listen(PORT, () => {
+            console.log("Server running on port", PORT);
+            console.log("Database is ready and accepting requests");
+        });
     } catch (error) {
         console.error('Failed to initialize database:', error);
         process.exit(1);
