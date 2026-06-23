@@ -1,43 +1,78 @@
 # OrganLink Deployment Guide
 
-## Deploy to Railway.app (Recommended - Free Tier)
+## Deploy to Glitch + PlanetScale (Free & Long-term)
 
-### Step 1: Sign up for Railway
+### STEP 1: Set up PlanetScale MySQL Database
 
-1. Go to [railway.app](https://railway.app) and sign up/login
-2. Click "New Project" or "Start a New Project"
+1. Go to [planetscale.com](https://planetscale.com) and sign up (free)
+2. Click "New Database" 
+3. Name it: `organlink`
+4. Select region closest to you
+5. Click "Create Database"
+6. Wait 1-2 minutes for database to be created
+7. Click on your database
+8. Go to "Connect" → "General" → "Connect with"
+9. Select "Node.js" and copy these credentials:
+   - **Host** (e.g., `aws.connect.psdb.cloud`)
+   - **Username**
+   - **Password**
+   - **Database name** (usually same as database name)
 
-### Step 2: Connect GitHub Repository
+### STEP 2: Run Database Schema on PlanetScale
 
-1. Click "Deploy from GitHub repo"
-2. Authorize Railway to access your GitHub account
-3. Select your repository: `anushaazmeera006-create/OrganLink`
-4. Click "Import"
+1. In PlanetScale, click "Console" or "SQL Editor"
+2. Copy the contents of your `init.sql` file
+3. Paste it into the SQL editor
+4. Click "Run" to create all tables
+5. This will create: users, person, donor, recipient, organ, hospital tables
 
-### Step 3: Add MySQL Database
+### STEP 3: Create Glitch Project
 
-1. In your Railway project, click "New Service"
-2. Select "Database" → "MySQL"
-3. Railway will automatically create a MySQL database
-4. Wait for the database to be provisioned (takes 1-2 minutes)
+1. Go to [glitch.com](https://glitch.com) and sign up/login
+2. Click "New Project" → "Import from GitHub"
+3. Authorize Glitch to access your GitHub
+4. Select your repository: `anushaazmeera006-create/OrganLink`
+5. Click "Import"
+6. Wait for Glitch to import your project
 
-### Step 4: Configure Environment Variables
+### STEP 4: Configure Environment Variables in Glitch
 
-Railway automatically sets database environment variables. You need to:
+1. In Glitch, click the project name (top left)
+2. Click ".env" file (or create it if doesn't exist)
+3. Add these variables with your PlanetScale credentials:
+   ```
+   DB_HOST=your-planetscale-host
+   DB_USER=your-planetscale-username
+   DB_PASSWORD=your-planetscale-password
+   DB_NAME=organlink
+   DB_PORT=3306
+   JWT_SECRET=organlink_secret_key_2024
+   ```
+4. Replace the values with your actual PlanetScale credentials from Step 1
 
-1. Click on your web service (the one from your GitHub repo)
-2. Go to "Variables" tab
-3. Add these environment variables:
-   - `DB_HOST`: `${{MYSQLHOST}}`
-   - `DB_USER`: `${{MYSQLUSER}}`
-   - `DB_PASSWORD`: `${{MYSQLPASSWORD}}`
-   - `DB_NAME`: `${{MYSQLDATABASE}}`
-   - `DB_PORT`: `${{MYSQLPORT}}`
-   - `JWT_SECRET`: Generate a random secret (e.g., `organlink_secret_key_2024`)
+### STEP 5: Start the Application
 
-### Step 5: Update db.js for Railway Environment Variables
+1. In Glitch, click "Logs" (bottom panel)
+2. Click "Start" or "Refresh" to restart the server
+3. Wait for it to show "Server running on..."
+4. Click "Show" (top button) to open your live app
+5. Your app URL will be: `https://your-project-name.glitch.me`
 
-Update your `db.js` to use Railway's environment variable names:
+### STEP 6: Test Your Application
+
+1. Open your Glitch app URL
+2. Check if dashboard loads with data
+3. Test adding donors, recipients
+4. Test the matching algorithm
+5. Verify all features work
+
+### IMPORTANT NOTES:
+
+- **Your Glitch link will stay active as long as your project is active**
+- **PlanetScale database is free and permanent**
+- **Both services are completely free**
+- **No migration needed - stays on MySQL**
+- **Links are stable for long-term use**
 
 ---
 
