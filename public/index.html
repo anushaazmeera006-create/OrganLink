@@ -513,9 +513,12 @@
             showPage('dashboard');
         }
 
-        // Initialize dashboard on load
+        // Initialize dashboard on load with delay to ensure server is ready
         window.addEventListener('DOMContentLoaded', () => {
-            showDashboard();
+            setTimeout(() => {
+                showDashboard();
+                loadDashboard();
+            }, 1000);
         });
 
         function showPage(page) {
@@ -559,11 +562,21 @@
                 
                 console.log('Data loaded:', { donors: donors.length, recipients: recipients.length, organs: organs.length });
                 
-                // If no data loaded, retry after 2 seconds (database might still be initializing)
+                // If no data loaded, retry up to 5 times with 2-second intervals
                 if (donors.length === 0 && recipients.length === 0 && organs.length === 0) {
-                    console.log('No data loaded, retrying in 2 seconds...');
-                    setTimeout(loadDashboard, 2000);
-                    return;
+                    console.log('No data loaded, retrying...');
+                    if (!window.dashboardRetries) window.dashboardRetries = 0;
+                    window.dashboardRetries++;
+                    
+                    if (window.dashboardRetries < 5) {
+                        setTimeout(loadDashboard, 2000);
+                        return;
+                    } else {
+                        console.log('Max retries reached, showing empty dashboard');
+                        window.dashboardRetries = 0;
+                    }
+                } else {
+                    window.dashboardRetries = 0;
                 }
                 
                 // Update stats
